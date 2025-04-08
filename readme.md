@@ -1,6 +1,7 @@
 ## Установка
 
 Требования: python >=3.10, Windows 11, Powershell, CUDA >=11.8
+
 Установка: запустить install.bat в Powershell, дождаться установки
 
 ## Запуск
