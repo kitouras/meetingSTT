@@ -1,5 +1,9 @@
-vosk-model-ru-0.42/
 .vscode/
+uploads/
+audio/
+GigaAM/
+last_summary.txt
+last_transcription.txt
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

@@ -1,7 +1,7 @@
-curl --output vosk_model.zip "https://alphacephei.com/vosk/models/vosk-model-ru-0.42.zip"
-tar -xf .\vosk_model.zip
-rm .\vosk_model.zip
+winget install "FFmpeg (Essentials Build)"
 python -m venv .\.venv
-.\.venv\Scripts\Activate.ps1
-pip install -r requirements.txt
-pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
+.\.venv\Scripts\pip.exe install -r requirements.txt
+git clone https://github.com/salute-developers/GigaAM.git
+.\.venv\Scripts\pip.exe install -e .\GigaAM
+.\.venv\Scripts\pip.exe uninstall torch torchaudio
+.\.venv\Scripts\pip.exe install torch==2.5.1 torchaudio==2.5.1 --index-url https://download.pytorch.org/whl/cu118

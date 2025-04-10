@@ -1,10 +1,11 @@
 import os
 import json
 import tempfile
+import gigaam
 from flask import Flask, request, jsonify
 from werkzeug.utils import secure_filename
-from models import VoskModelWrapper, PyannotePipelineWrapper, LLMClientWrapper
-from main import diarize_and_transcribe, summarize_text_with_llm
+from models import PyannotePipelineWrapper, LLMClientWrapper
+from main import diarize_and_transcribe, summarize_text_with_llm, preprocess_audio
 
 try:
     with open("./settings.json", 'r', encoding='utf-8') as f:
@@ -16,20 +17,25 @@ except json.JSONDecodeError:
     print("Error: Could not decode JSON from settings file ./settings.json")
     exit()
 
-vosk_model_path = settings.get("vosk_model_path")
 pyannote_model_name = settings.get("pyannote_model_name")
 hugging_face_token = settings.get("hugging_face_token")
 llm_api_endpoint = settings.get("llm_api_endpoint")
 llm_api_key = settings.get("llm_api_key", "")
 llm_api_auth = settings.get("llm_api_auth", False)
 llm_api_model = settings.get("llm_api_model")
-vosk_log_level = settings.get("vosk_log_level", -1)
-chunk_duration_seconds = settings.get("vosk_chunk_duration", 30)
 print("Initializing models for API...")
-vosk_wrapper = VoskModelWrapper(vosk_model_path, vosk_log_level)
 pyannote_wrapper = PyannotePipelineWrapper(pyannote_model_name, hugging_face_token)
 llm_wrapper = LLMClientWrapper(llm_api_endpoint, llm_api_key, llm_api_auth, llm_api_model)
-print("Models initialized for API.")
+
+print("Initializing GigaAM model for API...")
+try:
+    gigaam_model = gigaam.load_model("rnnt")
+    print("GigaAM model initialized for API.")
+except Exception as e:
+    print(f"Error initializing GigaAM model for API: {e}")
+    gigaam_model = None
+
+print("Core models initialized for API.")
 
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = 'uploads'
@@ -45,8 +51,8 @@ def allowed_file(filename):
 
 @app.route('/summarize', methods=['POST'])
 def summarize_audio():
-    if vosk_wrapper.model is None:
-        return jsonify({"error": "Vosk model failed to load on server startup. Cannot process request."}), 503
+    if gigaam_model is None:
+        return jsonify({"error": "GigaAM model failed to load on server startup. Cannot process request."}), 503
     if pyannote_wrapper.pipeline is None:
         return jsonify({"error": "Pyannote pipeline failed to load on server startup. Cannot process request."}), 503
 
@@ -66,12 +72,23 @@ def summarize_audio():
             file.save(temp_audio_path)
             print(f"Audio file saved temporarily to: {temp_audio_path}")
 
-            print("Starting transcription and diarization using wrappers...")
+            cleaned_audio_path = os.path.join(temp_dir, "cleaned_" + filename)
+            print(f"Attempting to preprocess audio to: {cleaned_audio_path}")
+            preprocess_success = preprocess_audio(temp_audio_path, cleaned_audio_path)
+
+            if not preprocess_success:
+                print("Audio preprocessing failed.")
+                if os.path.exists(temp_audio_path):
+                    os.remove(temp_audio_path)
+                return jsonify({"error": "Failed during audio preprocessing"}), 500
+            print("Audio preprocessing successful.")
+
+
+            print("Starting transcription and diarization using wrappers on cleaned audio...")
             transcription = diarize_and_transcribe(
-                temp_audio_path,
-                vosk_wrapper,
+                cleaned_audio_path,
                 pyannote_wrapper,
-                chunk_duration_seconds
+                gigaam_model
             )
             print(transcription)
             
@@ -114,8 +131,12 @@ def summarize_audio():
             print(f"An unexpected error occurred: {e}")
             return jsonify({"error": f"An internal server error occurred: {e}"}), 500
         finally:
-            if os.path.exists(temp_audio_path):
+            if 'temp_audio_path' in locals() and os.path.exists(temp_audio_path):
                 os.remove(temp_audio_path)
+                print(f"Removed temporary audio file: {temp_audio_path}")
+            if 'cleaned_audio_path' in locals() and os.path.exists(cleaned_audio_path):
+                os.remove(cleaned_audio_path)
+                print(f"Removed temporary cleaned audio file: {cleaned_audio_path}")
                 print(f"Removed temporary audio file: {temp_audio_path}")
             if os.path.exists(temp_dir):
                  os.rmdir(temp_dir)

@@ -1,145 +1,8 @@
 import os
 import json
-import wave
-import math
 import requests
 import torch
-from vosk import Model, KaldiRecognizer, SetLogLevel
 from pyannote.audio import Pipeline
-from pyannote.core import Segment
-
-class VoskModelWrapper:
-    def __init__(self, model_path, log_level=-1):
-        self.model_path = model_path
-        self.log_level = log_level
-        self.model = self._load_model()
-        SetLogLevel(self.log_level)
-
-    def _load_model(self):
-        print(f"Loading Vosk model from: {self.model_path}")
-        if not os.path.exists(self.model_path):
-            print(f"FATAL ERROR: Vosk model path does not exist: {self.model_path}")
-            return None
-        try:
-            model = Model(self.model_path)
-            print("Vosk model loaded successfully.")
-            return model
-        except Exception as e:
-            print(f"FATAL ERROR: Could not load Vosk model: {e}")
-            return None
-
-    def transcribe_audio_file(self, audio_path, chunk_duration_sec=30, diarization=None):
-        if not self.model:
-            print("Error: Vosk model not loaded.")
-            return None
-        if not os.path.exists(audio_path):
-            print(f"Error: Audio file not found at {audio_path}")
-            return None
-
-        try:
-            wf = wave.open(audio_path, "rb")
-        except Exception as e:
-            print(f"Error opening audio file: {e}")
-            return None
-
-        if wf.getnchannels() != 1 or wf.getsampwidth() != 2 or wf.getcomptype() != "NONE":
-            print("Audio file must be WAV format mono PCM.")
-            wf.close()
-            return None
-
-        sample_rate = wf.getframerate()
-        rec = KaldiRecognizer(self.model, sample_rate)
-        rec.SetWords(True)
-        rec.SetPartialWords(False)
-
-        chunk_size_frames = chunk_duration_sec * sample_rate
-        total_frames = wf.getnframes()
-        all_words = []
-
-        if diarization:
-            print("Processing audio with Vosk using diarization-informed chunks...")
-            current_pos = 0
-            while current_pos < total_frames:
-                next_boundary = min(current_pos + chunk_size_frames, total_frames)
-                boundary_time = next_boundary / sample_rate
-                
-                overlapping_segments = diarization.crop(Segment(boundary_time - 0.1, boundary_time + 0.1))
-                
-                if overlapping_segments:
-                    next_silence = None
-                    for segment in diarization.itersegments():
-                        if segment.start > boundary_time and not diarization.crop(segment):
-                            next_silence = segment.start
-                            break
-                    
-                    if next_silence:
-                        next_boundary = min(int(next_silence * sample_rate), total_frames)
-                
-                frames_to_read = next_boundary - current_pos
-                data = wf.readframes(frames_to_read)
-                if len(data) == 0:
-                    break
-                    
-                if rec.AcceptWaveform(data):
-                    result_json = rec.Result()
-                    result = json.loads(result_json)
-                    if 'result' in result:
-                        all_words.extend(result['result'])
-                
-                current_pos = next_boundary
-        else:
-            num_chunks = math.ceil(total_frames / chunk_size_frames)
-            print(f"Processing audio with Vosk in {num_chunks} fixed chunks...")
-            for i in range(num_chunks):
-                data = wf.readframes(chunk_size_frames)
-                if len(data) == 0:
-                    break
-                if rec.AcceptWaveform(data):
-                    result_json = rec.Result()
-                    result = json.loads(result_json)
-                    if 'result' in result:
-                        all_words.extend(result['result'])
-
-        final_result_json = rec.FinalResult()
-        final_result = json.loads(final_result_json)
-        if 'result' in final_result:
-             all_words.extend(final_result['result'])
-
-        print("Vosk transcription processing complete.")
-        wf.close()
-
-        if not all_words:
-            print("Warning: No words were transcribed by Vosk.")
-            return []
-
-        return all_words
-
-    def transcribe_segment(self, audio_bytes, sample_rate):
-        if not self.model:
-            print("Error: Vosk model not loaded.")
-            return None
-        if not audio_bytes:
-            print("Warning: No audio bytes provided for transcription.")
-            return []
-
-        rec = KaldiRecognizer(self.model, sample_rate)
-        rec.SetWords(True)
-        rec.SetPartialWords(False)
-
-        segment_words = []
-        if rec.AcceptWaveform(audio_bytes):
-            result_json = rec.Result()
-            result = json.loads(result_json)
-            if 'result' in result:
-                segment_words.extend(result['result'])
-        else:
-            final_result_json = rec.FinalResult()
-            final_result = json.loads(final_result_json)
-            if 'result' in final_result:
-                 segment_words.extend(final_result['result'])
-
-        return segment_words
-
 
 class PyannotePipelineWrapper:
     def __init__(self, model_name, auth_token=None):
@@ -189,8 +52,8 @@ class LLMClientWrapper:
         self.use_auth = use_auth
         self.model_name = model_name
 
-    def summarize(self, text, system_prompt="You are a helpful assistant that summarizes transcripts.",
-                  user_prompt_template="Please summarize the following transcript, give the answer in Russian:\n\n{}", temperature=0.7, max_tokens=4096):
+    def summarize(self, text, system_prompt="You are a helpful assistant that summarizes transcripts. Submitted transcripts may contain noise and errors.",
+                  user_prompt_template="Please summarize the following transcript, give the answer in Russian. Format the summary as meeting minutes.\n\n{}", temperature=0.7, max_tokens=4096):
         if not text:
             print("Error: No text provided for summarization.")
             return None

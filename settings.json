@@ -1,11 +1,8 @@
 {
     "hugging_face_token": "INSERT_HUGGING_FACE_TOKEN_HERE",
-    "vosk_model_path": "vosk-model-ru-0.42",
     "pyannote_model_name": "pyannote/speaker-diarization-3.1",
     "llm_api_endpoint": "http://127.0.0.1:1234/v1/chat/completions",
     "llm_api_model": "yandexgpt-5-lite-8b-instruct",
     "llm_api_auth": false,
-    "llm_api_key": "",
-    "vosk_log_level": -1,
-    "vosk_chunk_duration": 30
+    "llm_api_key": ""
 }
