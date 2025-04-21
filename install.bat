@@ -1,4 +1,3 @@
-winget install "FFmpeg (Essentials Build)"
 python -m venv .\.venv
 .\.venv\Scripts\pip.exe install -r requirements.txt
 git clone https://github.com/salute-developers/GigaAM.git

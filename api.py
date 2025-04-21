@@ -2,10 +2,17 @@ import os
 import json
 import tempfile
 import gigaam
-from flask import Flask, request, jsonify
+import psutil
+import pynvml
+import webbrowser
+from threading import Timer
+from flask import Flask, request, jsonify, render_template
 from werkzeug.utils import secure_filename
 from models import PyannotePipelineWrapper, LLMClientWrapper
 from main import diarize_and_transcribe, summarize_text_with_llm, preprocess_audio
+
+HOST = '127.0.0.1'
+PORT = 5001
 
 try:
     with open("./settings.json", 'r', encoding='utf-8') as f:
@@ -48,6 +55,56 @@ ALLOWED_EXTENSIONS = {'wav'}
 def allowed_file(filename):
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+@app.route('/')
+def index():
+    return render_template('index.html')
+
+@app.route('/resources', methods=['GET'])
+def get_resources():
+    """Endpoint to get current server resource usage, including GPU if available."""
+    process = psutil.Process(os.getpid())
+    cpu_percent = psutil.cpu_percent(interval=0.1)
+    mem_percent = psutil.virtual_memory().percent
+    process_mem_mb = process.memory_info().rss / (1024 * 1024)
+
+    gpu_utilization = None
+    gpu_mem_percent = None
+    gpu_mem_used_mb = None
+    gpu_mem_total_mb = None
+
+    try:
+        pynvml.nvmlInit()
+        handle = pynvml.nvmlDeviceGetHandleByIndex(0)
+        utilization = pynvml.nvmlDeviceGetUtilizationRates(handle)
+        gpu_utilization = utilization.gpu
+        mem_info = pynvml.nvmlDeviceGetMemoryInfo(handle)
+        gpu_mem_percent = round((mem_info.used / mem_info.total) * 100, 2)
+        gpu_mem_used_mb = round(mem_info.used / (1024 * 1024), 2)
+        gpu_mem_total_mb = round(mem_info.total / (1024 * 1024), 2)
+        pynvml.nvmlShutdown()
+    except pynvml.NVMLError as e:
+        print(f"NVML Error: {e}. GPU info not available.")
+        try:
+            pynvml.nvmlShutdown()
+        except pynvml.NVMLError:
+            pass
+    except Exception as e:
+        print(f"Unexpected error getting GPU info: {e}")
+        try:
+            pynvml.nvmlShutdown()
+        except pynvml.NVMLError:
+            pass
+
+    return jsonify({
+        "cpu_percent": cpu_percent,
+        "mem_percent": mem_percent,
+        "process_mem_mb": round(process_mem_mb, 2),
+        "gpu_utilization_percent": gpu_utilization,
+        "gpu_mem_percent": gpu_mem_percent,
+        "gpu_mem_used_mb": gpu_mem_used_mb,
+        "gpu_mem_total_mb": gpu_mem_total_mb
+    })
 
 @app.route('/summarize', methods=['POST'])
 def summarize_audio():
@@ -146,5 +203,9 @@ def summarize_audio():
     else:
         return jsonify({"error": "Invalid file type. Only .wav files are allowed."}), 400
 
+def open_browser():
+    webbrowser.open_new(f"http://127.0.0.1:{PORT}")
+    
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000)
+    Timer(1, open_browser).start()
+    app.run(host=HOST, port=PORT)

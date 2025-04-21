@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Audio Summarizer</title>
+    <link rel= "stylesheet" type= "text/css" href= "{{ url_for('static',filename='styles/index.css') }}">
+</head>
+<body>
+    <h1>Суммаризация заседаний</h1>
+    <form id="uploadForm">
+        <input type="file" id="audioFile" name="audio_file" accept=".wav" required>
+        <button type="submit">Суммаризировать</button>
+    </form>
+    <div class="loading" id="loadingIndicator">Обработка в процессе...</div>
+    <div class="error" id="errorMessage"></div>
+    <div id="summaryResult" style="display: none;">
+        <h2>Саммари:</h2>
+        <p id="summaryText"></p>
+    </div>
+    <div id="resourceUsage" style="display: none; margin-top: 20px;">
+        <h2>Монитор ресурсов:</h2>
+        <p>CPU: <span id="cpuUsage">--</span>%</p>
+        <p>ОЗУ: <span id="memUsage">--</span>%</p>
+        <p>ОЗУ процесса: <span id="processMemUsage">--</span> MB</p>
+        <p>Использование GPU: <span id="gpuUtilUsage">--</span>%</p>
+        <p>Память GPU: <span id="gpuMemUsage">--</span>% (<span id="gpuMemUsed">--</span> MB / <span id="gpuMemTotal">--</span> MB)</p>
+    </div>
+
+    <script type="module" src="{{ url_for('static',filename='main.js') }}"> </script>
+</body>
+</html>

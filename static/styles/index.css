@@ -1,0 +1,135 @@
+body {
+    font-family: 'Roboto', sans-serif;
+    padding: 20px;
+    background: linear-gradient(to right, #ece9e6, #ffffff);
+    color: #333;
+    line-height: 1.6;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: 100vh;
+    margin: 0;
+}
+
+h1 {
+    color: #2c3e50;
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+#uploadForm {
+    background-color: #fff;
+    padding: 30px;
+    border-radius: 8px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    margin-bottom: 30px;
+    width: 100%;
+    max-width: 500px;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+#uploadForm input[type="file"] {
+    border: 1px solid #ddd;
+    padding: 10px;
+    border-radius: 4px;
+    margin-bottom: 15px;
+    width: calc(100% - 22px);
+    box-sizing: border-box;
+    cursor: pointer;
+}
+
+#uploadForm button[type="submit"] {
+    background-color: #3498db;
+    color: white;
+    border: none;
+    padding: 12px 25px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 1em;
+    transition: background-color 0.3s ease;
+    font-weight: bold;
+}
+
+#uploadForm button[type="submit"]:hover {
+    background-color: #2980b9;
+}
+
+#summaryResult, #resourceUsage {
+    margin-top: 20px;
+    padding: 20px;
+    border: none;
+    border-radius: 8px;
+    background-color: #fff;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+    width: 100%;
+    white-space: normal;
+    max-width: 700px;
+    box-sizing: border-box;
+}
+
+#summaryResult h2, #resourceUsage h2 {
+    margin-top: 0;
+    color: #3498db;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 10px;
+    margin-bottom: 15px;
+}
+
+#summaryText {
+    color: #555;
+    white-space: pre-wrap;
+}
+
+#resourceUsage p {
+    margin: 8px 0;
+    color: #555;
+}
+
+#resourceUsage span {
+    font-weight: bold;
+    color: #333;
+}
+
+#summaryResult p,
+#resourceUsage p {
+    line-height: 1.1;
+    margin: 2px 0;
+}
+
+.loading {
+    display: none;
+    margin-top: 15px;
+    color: #3498db;
+    font-weight: bold;
+    text-align: center;
+}
+
+.error {
+    display: none;
+    color: #e74c3c;
+    margin-top: 15px;
+    background-color: #fdd;
+    padding: 10px;
+    border-radius: 4px;
+    border: 1px solid #e74c3c;
+    text-align: center;
+    width: 100%;
+    max-width: 500px;
+    box-sizing: border-box;
+}
+
+@media (max-width: 600px) {
+    body {
+        padding: 10px;
+    }
+    #uploadForm, #summaryResult, #resourceUsage {
+        padding: 15px;
+        max-width: 95%;
+    }
+    h1 {
+        font-size: 1.5em;
+    }
+}

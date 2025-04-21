@@ -3,3 +3,5 @@ pyannote.audio==3.3.2
 requests
 flask
 noisereduce
+psutil
+nvidia-ml-py
