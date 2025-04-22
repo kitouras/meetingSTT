@@ -5,3 +5,5 @@ flask
 noisereduce
 psutil
 nvidia-ml-py
+markdown
+fpdf2

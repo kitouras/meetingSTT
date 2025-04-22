@@ -4,6 +4,7 @@ const summaryResultDiv = document.getElementById('summaryResult');
 const summaryTextP = document.getElementById('summaryText');
 const loadingIndicator = document.getElementById('loadingIndicator');
 const errorMessageDiv = document.getElementById('errorMessage');
+const downloadSummaryLink = document.getElementById('downloadSummaryLink');
 const resourceUsageDiv = document.getElementById('resourceUsage');
 const cpuUsageSpan = document.getElementById('cpuUsage');
 const memUsageSpan = document.getElementById('memUsage');
@@ -65,6 +66,7 @@ form.addEventListener('submit', async (event) => {
     summaryResultDiv.style.display = 'none';
     errorMessageDiv.textContent = '';
     errorMessageDiv.style.display = 'none';
+    downloadSummaryLink.style.display = 'none';
     loadingIndicator.style.display = 'block';
     resourceUsageDiv.style.display = 'none';
     stopResourcePolling();
@@ -89,6 +91,8 @@ form.addEventListener('submit', async (event) => {
         if (response.ok) {
             summaryTextP.textContent = result.summary || "No summary generated (transcription might have been empty).";
             summaryResultDiv.style.display = 'block';
+            downloadSummaryLink.style.display = 'inline-block';
+            window.location.href = '/download/summary';
         } else {
             errorMessageDiv.textContent = `Error: ${result.error || response.statusText}`;
             errorMessageDiv.style.display = 'block';

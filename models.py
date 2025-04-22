@@ -52,7 +52,7 @@ class LLMClientWrapper:
         self.use_auth = use_auth
         self.model_name = model_name
 
-    def summarize(self, text, system_prompt="You are a helpful assistant that summarizes transcripts. Submitted transcripts may contain noise and errors.",
+    def summarize(self, text, system_prompt="You are a helpful assistant that summarizes transcripts. Submitted transcripts may contain noise and errors. Adhere to Markdown formatting.",
                   user_prompt_template="Please summarize the following transcript, give the answer in Russian. Format the summary as meeting minutes.\n\n{}", temperature=0.7, max_tokens=4096):
         if not text:
             print("Error: No text provided for summarization.")
