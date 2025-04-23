@@ -89,7 +89,7 @@ form.addEventListener('submit', async (event) => {
         const result = await response.json();
 
         if (response.ok) {
-            summaryTextP.textContent = result.summary || "No summary generated (transcription might have been empty).";
+            summaryTextP.innerHTML = result.summary ? marked.parse(result.summary) : "No summary generated (transcription might have been empty).";
             summaryResultDiv.style.display = 'block';
             downloadSummaryLink.style.display = 'inline-block';
             window.location.href = '/download/summary';
