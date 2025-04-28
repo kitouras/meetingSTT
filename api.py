@@ -7,23 +7,20 @@ import pynvml
 import webbrowser
 from threading import Timer
 import io
-import urllib.parse # Add this import
-from pathlib import Path
 from flask import Flask, request, jsonify, render_template, send_file
 import markdown
-from fpdf import FPDF, HTMLMixin # Replaced xhtml2pdf with fpdf2
+from fpdf import FPDF, HTMLMixin
 from werkzeug.utils import secure_filename
 from models import PyannotePipelineWrapper, LLMClientWrapper
 from main import diarize_and_transcribe, summarize_text_with_llm, preprocess_audio
 
-# Define project root at module level for consistent access
 project_root = os.path.dirname(os.path.abspath(__file__))
 
-HOST = '127.0.0.1'
+HOST = '0.0.0.0'
 PORT = 5001
 
 try:
-    with open("./settings.json", 'r', encoding='utf-8') as f:
+    with open(os.path.join(project_root, "settings.json"), 'r', encoding='utf-8') as f:
         settings = json.load(f)
 except FileNotFoundError:
     print("Error: Settings file not found at ./settings.json")
@@ -54,7 +51,7 @@ print("Core models initialized for API.")
 
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = 'uploads'
-app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024
+app.config['MAX_CONTENT_LENGTH'] = 1000 * 1024 * 1024
 
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
@@ -137,21 +134,21 @@ def summarize_audio():
             file.save(temp_audio_path)
             print(f"Audio file saved temporarily to: {temp_audio_path}")
 
-            cleaned_audio_path = os.path.join(temp_dir, "cleaned_" + filename)
-            print(f"Attempting to preprocess audio to: {cleaned_audio_path}")
-            preprocess_success = preprocess_audio(temp_audio_path, cleaned_audio_path)
+            # cleaned_audio_path = os.path.join(temp_dir, "cleaned_" + filename)
+            # print(f"Attempting to preprocess audio to: {cleaned_audio_path}")
+            # preprocess_success = preprocess_audio(temp_audio_path, cleaned_audio_path)
 
-            if not preprocess_success:
-                print("Audio preprocessing failed.")
-                if os.path.exists(temp_audio_path):
-                    os.remove(temp_audio_path)
-                return jsonify({"error": "Failed during audio preprocessing"}), 500
-            print("Audio preprocessing successful.")
+            # if not preprocess_success:
+            #     print("Audio preprocessing failed.")
+            #     if os.path.exists(temp_audio_path):
+            #         os.remove(temp_audio_path)
+            #     return jsonify({"error": "Failed during audio preprocessing"}), 500
+            # print("Audio preprocessing successful.")
 
 
-            print("Starting transcription and diarization using wrappers on cleaned audio...")
+            print("Starting transcription and diarization using wrappers on audio...")
             transcription = diarize_and_transcribe(
-                cleaned_audio_path,
+                temp_audio_path,
                 pyannote_wrapper,
                 gigaam_model
             )
@@ -199,10 +196,10 @@ def summarize_audio():
             if 'temp_audio_path' in locals() and os.path.exists(temp_audio_path):
                 os.remove(temp_audio_path)
                 print(f"Removed temporary audio file: {temp_audio_path}")
-            if 'cleaned_audio_path' in locals() and os.path.exists(cleaned_audio_path):
-                os.remove(cleaned_audio_path)
-                print(f"Removed temporary cleaned audio file: {cleaned_audio_path}")
-                print(f"Removed temporary audio file: {temp_audio_path}")
+            # if 'cleaned_audio_path' in locals() and os.path.exists(cleaned_audio_path):
+            #     os.remove(cleaned_audio_path)
+            #     print(f"Removed temporary cleaned audio file: {cleaned_audio_path}")
+            #     print(f"Removed temporary audio file: {temp_audio_path}")
             if os.path.exists(temp_dir):
                  os.rmdir(temp_dir)
                  print(f"Removed temporary directory: {temp_dir}")

@@ -1,0 +1,31 @@
+# Git files
+.git/
+.gitignore
+
+# Python virtual environment
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Docker files
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# Build
+build/
+dist/
+
+# Uploads and outputs
+uploads/
+last_transcription.txt
+last_summary.txt
+
+# GigaAM source
+GigaAM/
+
+# OS-specific files
+.DS_Store
+Thumbs.db

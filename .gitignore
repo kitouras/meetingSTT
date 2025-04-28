@@ -2,6 +2,7 @@
 uploads/
 audio/
 GigaAM/
+models/**
 last_summary.txt
 last_transcription.txt
 # Byte-compiled / optimized / DLL files
