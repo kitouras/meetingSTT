@@ -33,7 +33,6 @@ services:
     environment:
       LLAMA_ARG_MODEL: /models/YandexGPT-5-Lite-8B-instruct-Q4_K_M.gguf
       LLAMA_ARG_CTX_SIZE: 8192
-      LLAMA_ARG_N_PARALLEL: 2
       LLAMA_ARG_ENDPOINT_METRICS: 1
       LLAMA_ARG_PORT: 8080
     deploy:
