@@ -7,10 +7,10 @@ import pynvml
 import webbrowser
 from threading import Timer
 import io
+import uuid
 from flask import Flask, request, jsonify, render_template, send_file
 import markdown
 from fpdf import FPDF, HTMLMixin
-from werkzeug.utils import secure_filename
 from models import PyannotePipelineWrapper, LLMClientWrapper
 from main import diarize_and_transcribe, summarize_text_with_llm, preprocess_audio
 
@@ -127,9 +127,11 @@ def summarize_audio():
         return jsonify({"error": "No selected file"}), 400
 
     if file and allowed_file(file.filename):
-        filename = secure_filename(file.filename)
+        original_filename = file.filename
+        _, ext = os.path.splitext(original_filename)
+        unique_filename = f"{uuid.uuid4()}{ext}"
         temp_dir = tempfile.mkdtemp(dir=app.config['UPLOAD_FOLDER'])
-        temp_audio_path = os.path.join(temp_dir, filename)
+        temp_audio_path = os.path.join(temp_dir, unique_filename)
         try:
             file.save(temp_audio_path)
             print(f"Audio file saved temporarily to: {temp_audio_path}")
