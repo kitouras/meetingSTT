@@ -51,7 +51,7 @@ print("Core models initialized for API.")
 
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = 'uploads'
-app.config['MAX_CONTENT_LENGTH'] = 1000 * 1024 * 1024
+app.config['MAX_CONTENT_LENGTH'] = 1000 * 1024 * 1024 * 10
 
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
