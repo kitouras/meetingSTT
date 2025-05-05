@@ -12,7 +12,7 @@ from flask import Flask, request, jsonify, render_template, send_file
 import markdown
 from fpdf import FPDF, HTMLMixin
 from models import PyannotePipelineWrapper, LLMClientWrapper
-from main import diarize_and_transcribe, summarize_text_with_llm, preprocess_audio
+from main import diarize_and_transcribe, summarize_text_with_llm #, preprocess_audio
 
 project_root = os.path.dirname(os.path.abspath(__file__))
 
@@ -210,33 +210,30 @@ def summarize_audio():
     else:
         return jsonify({"error": "Invalid file type. Only .wav files are allowed."}), 400
 
-@app.route('/download/summary', methods=['GET'])
-def download_summary():
-    """Endpoint to download the last generated summary as a PDF."""
-    summary_file = "last_summary.txt"
-    pdf_filename = "summary.pdf"
-
-    if not os.path.exists(summary_file):
-        return jsonify({"error": "Summary file not found. Please generate a summary first."}), 404
+def _create_and_send_pdf(source_txt_path, output_pdf_filename):
+    """Reads a text file, converts its content to PDF, and sends it."""
+    if not os.path.exists(source_txt_path):
+        return jsonify({"error": f"{os.path.basename(source_txt_path)} not found. Please generate the content first."}), 404
 
     try:
-        with open(summary_file, 'r', encoding='utf-8') as f:
-            markdown_content = f.read()
+        with open(source_txt_path, 'r', encoding='utf-8') as f:
+            file_content = f.read()
 
-        html_content = markdown.markdown(markdown_content, extensions=['nl2br'])
-        
+        if source_txt_path.endswith("last_transcription.txt"):
+             html_content = file_content.replace('\n', '<br>')
+        elif source_txt_path.endswith("last_summary.txt"):
+             html_content = markdown.markdown(file_content, extensions=['nl2br'])
+             html_content = file_content.replace('\n', '<br>')
+
         class HTML2PDF(FPDF, HTMLMixin):
             pass
 
         pdf = HTML2PDF()
+        pdf_font_family = 'Helvetica'
+
         try:
             font_path_regular = os.path.join(project_root, 'DejaVuSans.ttf')
             font_path_bold = os.path.join(project_root, 'DejaVuSans-Bold.ttf')
-
-            if not os.path.exists(font_path_regular):
-                 font_path_regular = 'DejaVuSans.ttf'
-            if not os.path.exists(font_path_bold):
-                 font_path_bold = 'DejaVuSans-Bold.ttf'
 
             font_regular_exists = os.path.exists(font_path_regular)
             font_bold_exists = os.path.exists(font_path_bold)
@@ -246,41 +243,38 @@ def download_summary():
                  pdf.add_font('DejaVu', 'I', font_path_regular, uni=True)
                  pdf.add_font('DejaVu', 'BI', font_path_regular, uni=True)
                  pdf.set_font('DejaVu', '', 12)
-                 print("Loaded DejaVuSans.ttf for regular, italic, bold-italic styles.")
-            else:
-                 print("Warning: DejaVuSans.ttf font not found. Regular text rendering might be affected.")
-                 pdf.set_font('helvetica', '', 12)
-                 print("Falling back to Helvetica for regular text.")
-
-
-            if font_bold_exists:
+                 pdf_font_family = 'DejaVu'
+                 print(f"Loaded {font_path_regular} for regular, italic, bold-italic styles.")
+                 if font_bold_exists:
+                      pdf.add_font('DejaVu', 'B', font_path_bold, uni=True)
+                      print(f"Loaded {font_path_bold} for bold style.")
+                 else:
+                      pdf.add_font('DejaVu', 'B', font_path_regular, uni=True)
+                      print(f"Warning: {font_path_bold} not found. Using regular font for bold style.")
+            elif font_bold_exists:
+                 pdf.add_font('DejaVu', '', font_path_bold, uni=True)
                  pdf.add_font('DejaVu', 'B', font_path_bold, uni=True)
-                 print("Loaded DejaVuSans-Bold.ttf for bold style.")
-            elif font_regular_exists:
-                 pdf.add_font('DejaVu', 'B', font_path_regular, uni=True)
-                 print("Warning: DejaVuSans-Bold.ttf not found. Using regular font for bold text.")
-            else:
-                 print("Warning: Bold font DejaVuSans-Bold.ttf not found, and regular font fallback unavailable.")
-
-            if not font_regular_exists and font_bold_exists:
+                 pdf.add_font('DejaVu', 'I', font_path_bold, uni=True)
+                 pdf.add_font('DejaVu', 'BI', font_path_bold, uni=True)
                  pdf.set_font('DejaVu', '', 12)
-
-            if not font_regular_exists and not font_bold_exists:
-                 print("Warning: No DejaVu fonts loaded. PDF might have rendering issues with Unicode.")
-                 pdf.set_font('helvetica', '', 12)
+                 pdf_font_family = 'DejaVu'
+                 print(f"Warning: {font_path_regular} not found. Using {font_path_bold} for all styles.")
             else:
-                 print("Warning: DejaVuSans.ttf font not found. PDF might not render Unicode characters correctly.")
+                 print(f"Warning: Neither {font_path_regular} nor {font_path_bold} found. Falling back to Helvetica.")
+                 pdf.set_font('helvetica', '', 12)
+
         except Exception as font_error:
-            print(f"Error adding font: {font_error}")
+            print(f"Error adding font: {font_error}. Falling back to default font.")
+            pdf.set_font('helvetica', '', 12)
+            pdf_font_family = 'Helvetica'
 
         pdf.add_page()
-
 
         styled_html = f"""
         <!DOCTYPE html>
         <html>
         <head><meta charset="UTF-8"></head>
-        <body style="line-height: 1.6;">
+        <body style="font-family: '{pdf_font_family}', sans-serif; line-height: 1.6;">
             {html_content}
         </body>
         </html>
@@ -289,11 +283,10 @@ def download_summary():
         try:
             pdf.write_html(styled_html)
         except Exception as e:
+            print(f"Error generating PDF from HTML content for {source_txt_path} with fpdf2: {e}")
             if "Character" in str(e) and "outside the range" in str(e):
                  print(f"Unicode character error in PDF generation: {e}. Ensure a Unicode font is correctly loaded and set.")
-            else:
-                 print(f"Error generating PDF with fpdf2: {e}")
-            return jsonify({"error": f"Failed to generate PDF summary using fpdf2: {e}"}), 500
+            return jsonify({"error": f"Failed to generate PDF from content using fpdf2: {e}"}), 500
 
         try:
             pdf_output_bytes = pdf.output(dest='S')
@@ -306,15 +299,25 @@ def download_summary():
         return send_file(
             pdf_buffer,
             as_attachment=True,
-            download_name=pdf_filename,
+            download_name=output_pdf_filename,
             mimetype='application/pdf'
         )
 
     except FileNotFoundError:
-         return jsonify({"error": "Summary file not found. Please generate a summary first."}), 404
+         return jsonify({"error": f"{os.path.basename(source_txt_path)} not found."}), 404
     except Exception as e:
-        print(f"Error generating or sending PDF summary: {e}")
-        return jsonify({"error": f"Failed to generate PDF summary: {e}"}), 500
+        print(f"Error processing request for {output_pdf_filename}: {e}")
+        return jsonify({"error": f"Failed to generate or send PDF: {e}"}), 500
+
+@app.route('/download/summary', methods=['GET'])
+def download_summary():
+    """Endpoint to download the last generated summary as a PDF."""
+    return _create_and_send_pdf("last_summary.txt", "summary.pdf")
+
+@app.route('/download/transcription', methods=['GET'])
+def download_transcription():
+    """Endpoint to download the last generated transcription as a PDF."""
+    return _create_and_send_pdf("last_transcription.txt", "transcription.pdf")
 
 
 def open_browser():
