@@ -10,7 +10,7 @@ import io
 import uuid
 from flask import Flask, request, jsonify, render_template, send_file
 import markdown
-from fpdf import FPDF, HTMLMixin
+from fpdf import FPDF
 from models import PyannotePipelineWrapper, LLMClientWrapper
 from main import diarize_and_transcribe, summarize_text_with_llm #, preprocess_audio
 
@@ -220,15 +220,11 @@ def _create_and_send_pdf(source_txt_path, output_pdf_filename):
             file_content = f.read()
 
         if source_txt_path.endswith("last_transcription.txt"):
-             html_content = file_content.replace('\n', '<br>')
+            html_content = file_content.replace('\n', '<br>')
         elif source_txt_path.endswith("last_summary.txt"):
-             html_content = markdown.markdown(file_content, extensions=['nl2br'])
-             html_content = file_content.replace('\n', '<br>')
+            html_content = markdown.markdown(file_content, extensions=['nl2br'])
 
-        class HTML2PDF(FPDF, HTMLMixin):
-            pass
-
-        pdf = HTML2PDF()
+        pdf = FPDF()
         pdf_font_family = 'Helvetica'
 
         try:
@@ -239,29 +235,29 @@ def _create_and_send_pdf(source_txt_path, output_pdf_filename):
             font_bold_exists = os.path.exists(font_path_bold)
 
             if font_regular_exists:
-                 pdf.add_font('DejaVu', '', font_path_regular, uni=True)
-                 pdf.add_font('DejaVu', 'I', font_path_regular, uni=True)
-                 pdf.add_font('DejaVu', 'BI', font_path_regular, uni=True)
-                 pdf.set_font('DejaVu', '', 12)
-                 pdf_font_family = 'DejaVu'
-                 print(f"Loaded {font_path_regular} for regular, italic, bold-italic styles.")
-                 if font_bold_exists:
-                      pdf.add_font('DejaVu', 'B', font_path_bold, uni=True)
-                      print(f"Loaded {font_path_bold} for bold style.")
-                 else:
-                      pdf.add_font('DejaVu', 'B', font_path_regular, uni=True)
-                      print(f"Warning: {font_path_bold} not found. Using regular font for bold style.")
+                pdf.add_font('DejaVu', '', font_path_regular)
+                pdf.add_font('DejaVu', 'I', font_path_regular)
+                pdf.add_font('DejaVu', 'BI', font_path_regular)
+                pdf.set_font('DejaVu', '', 12)
+                pdf_font_family = 'DejaVu'
+                print(f"Loaded {font_path_regular} for regular, italic, bold-italic styles.")
+                if font_bold_exists:
+                    pdf.add_font('DejaVu', 'B', font_path_bold)
+                    print(f"Loaded {font_path_bold} for bold style.")
+                else:
+                    pdf.add_font('DejaVu', 'B', font_path_regular)
+                    print(f"Warning: {font_path_bold} not found. Using regular font for bold style.")
             elif font_bold_exists:
-                 pdf.add_font('DejaVu', '', font_path_bold, uni=True)
-                 pdf.add_font('DejaVu', 'B', font_path_bold, uni=True)
-                 pdf.add_font('DejaVu', 'I', font_path_bold, uni=True)
-                 pdf.add_font('DejaVu', 'BI', font_path_bold, uni=True)
-                 pdf.set_font('DejaVu', '', 12)
-                 pdf_font_family = 'DejaVu'
-                 print(f"Warning: {font_path_regular} not found. Using {font_path_bold} for all styles.")
+                pdf.add_font('DejaVu', '', font_path_bold)
+                pdf.add_font('DejaVu', 'B', font_path_bold)
+                pdf.add_font('DejaVu', 'I', font_path_bold)
+                pdf.add_font('DejaVu', 'BI', font_path_bold)
+                pdf.set_font('DejaVu', '', 12)
+                pdf_font_family = 'DejaVu'
+                print(f"Warning: {font_path_regular} not found. Using {font_path_bold} for all styles.")
             else:
-                 print(f"Warning: Neither {font_path_regular} nor {font_path_bold} found. Falling back to Helvetica.")
-                 pdf.set_font('helvetica', '', 12)
+                print(f"Warning: Neither {font_path_regular} nor {font_path_bold} found. Falling back to Helvetica.")
+                pdf.set_font('helvetica', '', 12)
 
         except Exception as font_error:
             print(f"Error adding font: {font_error}. Falling back to default font.")
@@ -274,7 +270,7 @@ def _create_and_send_pdf(source_txt_path, output_pdf_filename):
         <!DOCTYPE html>
         <html>
         <head><meta charset="UTF-8"></head>
-        <body style="font-family: '{pdf_font_family}', sans-serif; line-height: 1.6;">
+        <body style="font-family: '{pdf_font_family}', sans-serif; line-height: 5.0;">
             {html_content}
         </body>
         </html>
@@ -285,16 +281,16 @@ def _create_and_send_pdf(source_txt_path, output_pdf_filename):
         except Exception as e:
             print(f"Error generating PDF from HTML content for {source_txt_path} with fpdf2: {e}")
             if "Character" in str(e) and "outside the range" in str(e):
-                 print(f"Unicode character error in PDF generation: {e}. Ensure a Unicode font is correctly loaded and set.")
+                print(f"Unicode character error in PDF generation: {e}. Ensure a Unicode font is correctly loaded and set.")
             return jsonify({"error": f"Failed to generate PDF from content using fpdf2: {e}"}), 500
 
         try:
-            pdf_output_bytes = pdf.output(dest='S')
+            pdf_output_bytes = pdf.output()
             pdf_buffer = io.BytesIO(pdf_output_bytes)
             pdf_buffer.seek(0)
         except Exception as e:
-             print(f"Error getting PDF output bytes: {e}")
-             return jsonify({"error": f"Failed to finalize PDF generation: {e}"}), 500
+            print(f"Error getting PDF output bytes: {e}")
+            return jsonify({"error": f"Failed to finalize PDF generation: {e}"}), 500
 
         return send_file(
             pdf_buffer,

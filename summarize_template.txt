@@ -1,0 +1,32 @@
+Transcript of the meeting (may contain noise and errors):
+<transript>
+{}
+</transript>
+
+Formatting for the meeting minutes:
+<formatting>
+# ПРОТОКОЛ - [Название совещания]
+
+Присутствующие: [примерный список присутствующих]
+
+Повестка дня:
+1. [Пункт повестки 1]
+2. [Пункт повестки 2]
+...
+
+---
+
+## [Название пункта повестки 1]
+
+[Подробное содержание пункта 1]
+
+---
+
+## [Название пункта повестки 2]
+
+[Подробное содержание пункта 2]
+
+(И так для остальных пунктов)
+</formatting>
+
+Summarize the transcript given in `<transription>`, format your answer according to `<formatting>`. Your answer should be in Russian and contain only the summary, omit `<formatting>` tag.
