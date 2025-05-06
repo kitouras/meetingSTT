@@ -10,6 +10,7 @@ services:
       - "5001:5001"
     volumes:
       - ./settings.json:/app/settings.json:ro
+      - ./summarize_template.txt:/app/summarize_template.txt:ro
       - ./DejaVuSans.ttf:/app/DejaVuSans.ttf:ro
       - ./DejaVuSans-Bold.ttf:/app/DejaVuSans-Bold.ttf:ro
     deploy:
@@ -31,7 +32,7 @@ services:
     ports:
       - "8080:8080"
     environment:
-      LLAMA_ARG_MODEL: /models/YandexGPT-5-Lite-8B-instruct-Q4_K_M.gguf
+      LLAMA_ARG_MODEL: /models/gemma-3-12b-it-q4_0.gguf
       LLAMA_ARG_CTX_SIZE: 32768
       LLAMA_ARG_ENDPOINT_METRICS: 1
       LLAMA_ARG_PORT: 8080

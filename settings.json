@@ -2,7 +2,7 @@
     "hugging_face_token": "INSERT_HUGGING_FACE_TOKEN_HERE",
     "pyannote_model_name": "pyannote/speaker-diarization-3.1",
     "llm_api_endpoint": "http://llamacpp:8080/v1/chat/completions",
-    "llm_api_model": "YandexGPT-5-Lite-8B-instruct-Q4_K_M.gguf",
+    "llm_api_model": "gemma-3-12b-it-q4_0.gguf",
     "llm_api_auth": false,
     "llm_api_key": ""
 }
