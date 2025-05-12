@@ -6,6 +6,7 @@ models/**
 !models/.gitkeep
 last_summary.txt
 last_transcription.txt
+.diarization_build_state.json
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

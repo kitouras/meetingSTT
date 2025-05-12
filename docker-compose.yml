@@ -2,17 +2,14 @@ volumes:
   models:
 
 services:
-  app:
+  diarization_service:
     build:
       context: .
       dockerfile: Dockerfile
     ports:
-      - "5001:5001"
+      - "5002:5002"
     volumes:
       - ./settings.json:/app/settings.json:ro
-      - ./summarize_template.txt:/app/summarize_template.txt:ro
-      - ./DejaVuSans.ttf:/app/DejaVuSans.ttf:ro
-      - ./DejaVuSans-Bold.ttf:/app/DejaVuSans-Bold.ttf:ro
     deploy:
       resources:
         reservations:
@@ -22,20 +19,18 @@ services:
               capabilities: [gpu]
     stdin_open: true
     tty: true
-    depends_on:
-      - llamacpp
 
   llamacpp:
     image: ghcr.io/ggerganov/llama.cpp:server-cuda
     volumes:
       - ./models:/models
     ports:
-      - "8080:8080"
+      - "1234:1234"
     environment:
       LLAMA_ARG_MODEL: /models/gemma-3-12b-it-q4_0.gguf
       LLAMA_ARG_CTX_SIZE: 32768
       LLAMA_ARG_ENDPOINT_METRICS: 1
-      LLAMA_ARG_PORT: 8080
+      LLAMA_ARG_PORT: 1234
     deploy:
       resources:
         reservations:

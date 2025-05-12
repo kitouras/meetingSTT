@@ -1,0 +1,5 @@
+pyannote.audio==3.3.2
+flask
+noisereduce
+psutil
+nvidia-ml-py

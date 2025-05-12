@@ -1,9 +1,0 @@
-vosk==0.3.45
-pyannote.audio==3.3.2
-requests
-flask
-noisereduce
-psutil
-nvidia-ml-py
-markdown
-fpdf2

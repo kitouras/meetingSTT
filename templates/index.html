@@ -27,8 +27,10 @@
         <p>CPU: <span id="cpuUsage">--</span>%</p>
         <p>ОЗУ: <span id="memUsage">--</span>%</p>
         <p>ОЗУ процесса: <span id="processMemUsage">--</span> MB</p>
+        <hr style="margin: 10px 0;">
         <p>Использование GPU: <span id="gpuUtilUsage">--</span>%</p>
         <p>Память GPU: <span id="gpuMemUsage">--</span>% (<span id="gpuMemUsed">--</span> MB / <span id="gpuMemTotal">--</span> MB)</p>
+        <p id="gpuError" style="display: none; color: red;"></p>
     </div>
 
     <script type="module" src="{{ url_for('static',filename='main.js') }}"> </script>

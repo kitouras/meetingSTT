@@ -14,19 +14,23 @@ RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.10 1
 
 WORKDIR /app
 
-COPY requirements.txt .
+COPY diarization_service/requirements.txt .
 
 RUN pip3 install --no-cache-dir --upgrade pip && \
     pip3 install --no-cache-dir torch==2.5.1 torchaudio==2.5.1 --index-url https://download.pytorch.org/whl/cu118 && \
     pip3 install --no-cache-dir -r requirements.txt
 
-COPY . .
+COPY diarization_service ./diarization_service
+COPY settings.json .
 
 RUN git clone https://github.com/salute-developers/GigaAM.git && \
     pip3 install --no-cache-dir -e ./GigaAM
 
-RUN mkdir -p uploads
+RUN python3 ./diarization_service/pre_cache_gigaam.py
+RUN python3 ./diarization_service/pre_cache_pyannote.py
 
-EXPOSE 5001
+RUN mkdir -p diarization_uploads
 
-CMD ["python3", "api.py"]
+EXPOSE 5002
+
+CMD ["python3", "-m", "diarization_service.api"]
