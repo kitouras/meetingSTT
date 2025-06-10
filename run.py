@@ -1,17 +1,37 @@
+"""Main script to run the application services.
+
+This script manages the lifecycle of the application, including:
+- Starting and stopping Docker Compose services for the backend.
+- Automatically rebuilding the Docker image if source files change.
+- Starting and stopping the Python-based UI client.
+- Handling graceful shutdown on signals like Ctrl+C.
+"""
 import subprocess
 import signal
 import sys
 import os
 import time
 import atexit
-from python_on_whales import DockerClient, DockerException
 import json
 import hashlib
+from types import FrameType
+from typing import Optional, Dict, Any
+
+from python_on_whales import DockerClient, DockerException
+
 
 BUILD_STATE_FILE = ".diarization_build_state.json"
 
-def get_file_hash(filepath):
-    """Computes SHA256 hash of a file."""
+
+def get_file_hash(filepath: str) -> Optional[str]:
+    """Computes the SHA256 hash of a file.
+
+    Args:
+        filepath: The path to the file.
+
+    Returns:
+        The hex digest of the file's hash, or None if the file doesn't exist.
+    """
     h = hashlib.sha256()
     if not os.path.exists(filepath):
         return None
@@ -23,8 +43,17 @@ def get_file_hash(filepath):
             h.update(chunk)
     return h.hexdigest()
 
-def get_dir_hash(dirpath):
-    """Computes a representative hash for a directory's contents."""
+
+def get_dir_hash(dirpath: str) -> Optional[str]:
+    """Computes a representative SHA256 hash for a directory's contents.
+
+    Args:
+        dirpath: The path to the directory.
+
+    Returns:
+        A single hash representing the contents of the directory, or None if
+        the directory doesn't exist.
+    """
     if not os.path.isdir(dirpath):
         return None
     hashes = []
@@ -34,15 +63,20 @@ def get_dir_hash(dirpath):
             file_hash = get_file_hash(filepath)
             if file_hash:
                 hashes.append(file_hash)
-    
+
     dir_hasher = hashlib.sha256()
     for h_val in sorted(hashes):
         dir_hasher.update(h_val.encode('utf-8'))
     return dir_hasher.hexdigest()
 
-def get_current_source_state():
-    """Gets the current hashes of all watched source files and directories."""
-    state = {}
+
+def get_current_source_state() -> Dict[str, Optional[str]]:
+    """Gets the current hashes of all watched source files and directories.
+
+    Returns:
+        A dictionary mapping file/dir paths to their content hashes.
+    """
+    state: Dict[str, Optional[str]] = {}
     source_files_to_hash = ["Dockerfile"]
     source_dirs_to_hash = ["diarization_service"]
 
@@ -51,38 +85,58 @@ def get_current_source_state():
 
     for d_path in source_dirs_to_hash:
         state[d_path] = get_dir_hash(d_path)
-        
+
     return state
 
-def load_previous_source_state():
-    """Loads the last saved source state from the state file."""
+
+def load_previous_source_state() -> Dict[str, Any]:
+    """Loads the last saved source state from the state file.
+
+    Returns:
+        A dictionary with the previously saved source state, or an empty dict.
+    """
     if os.path.exists(BUILD_STATE_FILE):
         try:
-            with open(BUILD_STATE_FILE, 'r') as f:
+            with open(BUILD_STATE_FILE, 'r', encoding='utf-8') as f:
                 return json.load(f)
         except json.JSONDecodeError:
             print(f"Warning: Could not decode {BUILD_STATE_FILE}. Assuming no previous state.")
             return {}
     return {}
 
-def save_source_state(state):
-    """Saves the current source state to the state file."""
+
+def save_source_state(state: Dict[str, Optional[str]]) -> None:
+    """Saves the current source state to the state file.
+
+    Args:
+        state: The current source state dictionary to save.
+    """
     try:
-        with open(BUILD_STATE_FILE, 'w') as f:
+        with open(BUILD_STATE_FILE, 'w', encoding='utf-8') as f:
             json.dump(state, f, indent=4)
         print(f"Build state saved to {BUILD_STATE_FILE}")
     except IOError as e:
         print(f"Error saving build state to {BUILD_STATE_FILE}: {e}")
 
-ui_process = None
-docker = None
 
-def get_project_name():
-    """Gets the project name from the directory name or uses a default."""
+ui_process: Optional[subprocess.Popen] = None
+docker: Optional[DockerClient] = None
+
+
+def get_project_name() -> str:
+    """Gets the project name from the directory name or uses a default.
+
+    Returns:
+        A sanitized string to be used as the Docker Compose project name.
+    """
     return os.path.basename(os.getcwd()).lower().replace("_", "").replace("-", "") or "meetingstt"
 
-def start_docker_services():
-    """Starts the Docker Compose services."""
+
+def start_docker_services() -> None:
+    """Starts the Docker Compose services.
+
+    Checks if a rebuild is needed based on source file changes before starting.
+    """
     global docker
     print("Initializing Docker client...")
     try:
@@ -209,7 +263,7 @@ def start_docker_services():
         print(f"An unexpected error occurred during Docker service startup: {e}")
         sys.exit(1)
 
-def stop_docker_services():
+def stop_docker_services() -> None:
     """Stops the Docker Compose services."""
     global docker
     if docker:
@@ -225,8 +279,8 @@ def stop_docker_services():
         print("Docker client not initialized, skipping Docker stop.")
 
 
-def start_ui_client():
-    """Starts the UI client application."""
+def start_ui_client() -> None:
+    """Starts the UI client application as a separate process."""
     global ui_process
     print("Starting UI client (python -m ui_client.api)...")
     try:
@@ -252,10 +306,15 @@ def start_ui_client():
         handle_exit(None, None)
 
 
-def handle_exit(sig, frame):
-    """Handles script termination signals."""
+def handle_exit(sig: int, frame: Optional[FrameType]) -> None:
+    """Handles script termination signals for graceful shutdown.
+
+    Args:
+        sig: The signal number received.
+        frame: The current stack frame.
+    """
     print(f"\nSignal {sig} received. Shutting down...")
-    
+
     global ui_process
     if ui_process and ui_process.poll() is None:
         print("Terminating UI client process...")

@@ -1,3 +1,4 @@
+"""Flask API for the UI client, handling user requests and orchestrating services."""
 import os
 import json
 import tempfile
@@ -6,8 +7,9 @@ import webbrowser
 from threading import Timer
 import io
 import signal
+from typing import Tuple
 
-from flask import Flask, request, jsonify, render_template, send_file
+from flask import Flask, request, jsonify, render_template, send_file, Response
 import markdown
 from fpdf import FPDF
 
@@ -23,7 +25,13 @@ diarization_service_client = None
 settings = None
 project_root_ui_client = os.path.dirname(os.path.abspath(__file__))
 
-def load_ui_settings_and_clients():
+def load_ui_settings_and_clients() -> None:
+    """Loads settings and initializes service clients.
+
+    Reads the main settings.json, initializes the LLMClientWrapper and
+    the DiarizationServiceClient. Exits the application if essential
+    settings are missing.
+    """
     global llm_wrapper, diarization_service_client, settings
     
     settings_path = os.path.join(os.path.dirname(project_root_ui_client), "settings.json")
@@ -73,23 +81,44 @@ os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
 ALLOWED_EXTENSIONS = {'wav', 'mp3', 'ogg', 'flac', 'm4a'}
 
-def allowed_file(filename):
+def allowed_file(filename: str) -> bool:
+    """Checks if the uploaded file has an allowed extension.
+
+    Args:
+        filename: The name of the file to check.
+
+    Returns:
+        True if the file extension is in the allowed list, False otherwise.
+    """
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 @app.route('/')
-def loading_page():
-    """Serves the initial loading page that checks service status."""
+def loading_page() -> Response:
+    """Serves the initial loading page that checks service status.
+
+    Returns:
+        The rendered HTML for the loading page.
+    """
     return render_template('loading.html')
 
 @app.route('/app')
-def application_page():
-    """Serves the main application page once services are ready."""
+def application_page() -> Response:
+    """Serves the main application page once services are ready.
+
+    Returns:
+        The rendered HTML for the main application page.
+    """
     return render_template('index.html')
 
 @app.route('/service_status', methods=['GET'])
-def service_status_endpoint():
-    """Endpoint for the loading page to poll diarization and LLM service health."""
+def service_status_endpoint() -> Tuple[Response, int]:
+    """Endpoint for the loading page to poll diarization and LLM service health.
+
+    Returns:
+        A tuple containing the Flask JSON response with the service statuses
+        and the HTTP status code.
+    """
     diarization_ready = False
     diarization_message = "Diarization client not initialized on UI server."
     diarization_details = None
@@ -158,8 +187,15 @@ def service_status_endpoint():
     }), status_code
 
 @app.route('/resources', methods=['GET'])
-def get_resources():
+def get_resources() -> Tuple[Response, int]:
+    """Provides resource usage data from the diarization service.
 
+    Fetches CPU, memory, and GPU usage statistics from the health endpoint
+    of the diarization service and returns them as a JSON response.
+
+    Returns:
+        A tuple containing the Flask JSON response and the HTTP status code.
+    """
     if not diarization_service_client:
         return jsonify({
             "status": "error",
@@ -227,7 +263,17 @@ def get_resources():
     return jsonify(response_data)
 
 @app.route('/summarize', methods=['POST'])
-def summarize_meeting_endpoint():
+def summarize_meeting_endpoint() -> Tuple[Response, int]:
+    """Handles audio file upload, transcription, and summarization.
+
+    Receives an audio file, sends it to the diarization service for
+    transcription, then sends the transcription to the LLM service for
+    summarization.
+
+    Returns:
+        A tuple containing the Flask JSON response with the summary and
+        the HTTP status code.
+    """
     if not diarization_service_client:
         return jsonify({"error": "Diarization service client not initialized."}), 503
     if not llm_wrapper:
@@ -334,7 +380,16 @@ def summarize_meeting_endpoint():
         return jsonify({"error": f"Invalid file type. Allowed: {ALLOWED_EXTENSIONS}"}), 400
 
 
-def _create_and_send_pdf_ui(source_txt_filename, output_pdf_filename):
+def _create_and_send_pdf_ui(source_txt_filename: str, output_pdf_filename: str) -> Response:
+    """Creates and sends a PDF from a given text file.
+
+    Args:
+        source_txt_filename: The name of the source .txt file (e.g., "last_summary.txt").
+        output_pdf_filename: The desired filename for the downloaded PDF.
+
+    Returns:
+        A Flask response object to send the generated PDF file.
+    """
     source_txt_path = os.path.join(os.path.dirname(project_root_ui_client), source_txt_filename)
     
     if not os.path.exists(source_txt_path):
@@ -413,20 +468,36 @@ def _create_and_send_pdf_ui(source_txt_filename, output_pdf_filename):
         return jsonify({"error": f"Failed to generate or send PDF from UI client: {str(e)}"}), 500
 
 @app.route('/download/summary', methods=['GET'])
-def download_summary_ui():
+def download_summary_ui() -> Response:
+    """Endpoint to download the meeting summary as a PDF.
+
+    Returns:
+        A Flask response to download the generated PDF file.
+    """
     return _create_and_send_pdf_ui("last_summary.txt", "summary.pdf")
 
 @app.route('/download/transcription', methods=['GET'])
-def download_transcription_ui():
+def download_transcription_ui() -> Response:
+    """Endpoint to download the full transcription as a PDF.
+
+    Returns:
+        A Flask response to download the generated PDF file.
+    """
     return _create_and_send_pdf_ui("last_transcription.txt", "transcription.pdf")
 
 @app.route('/shutdown', methods=['POST', 'GET'])
-def shutdown_server():
+def shutdown_server() -> Tuple[str, int]:
+    """Shuts down the Flask server gracefully.
+
+    Returns:
+        A tuple containing a confirmation message and the HTTP status code.
+    """
     print("UI Client: Shutdown request received from browser. Sending SIGINT to self to terminate UI client process.")
     os.kill(os.getpid(), signal.SIGINT)
     return "UI Server is shutting down...", 200
 
-def open_browser_ui():
+def open_browser_ui() -> None:
+    """Opens the application's URL in a new browser tab."""
     webbrowser.open_new(f"http://127.0.0.1:{UI_PORT}/")
     
 if __name__ == '__main__':

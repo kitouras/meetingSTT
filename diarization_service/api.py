@@ -1,13 +1,16 @@
+"""Flask API for the Diarization and Transcription service."""
 import os
 import json
 import tempfile
+from typing import Tuple
+
 import gigaam
 import psutil
 try:
     import pynvml
 except ImportError:
     pynvml = None
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, Response
 from werkzeug.utils import secure_filename
 
 from .models import PyannotePipelineWrapper
@@ -22,7 +25,13 @@ pyannote_wrapper = None
 gigaam_model = None
 settings = None
 
-def load_service_settings_and_models():
+def load_service_settings_and_models() -> None:
+    """Loads settings and initializes the machine learning models.
+
+    Reads the main settings.json, initializes the Pyannote pipeline for
+    diarization, and the GigaAM model for transcription. Exits if essential
+    models cannot be loaded.
+    """
     global pyannote_wrapper, gigaam_model, settings
     
     project_root_diarization_service = os.path.dirname(os.path.abspath(__file__))
@@ -67,12 +76,26 @@ app.config['MAX_CONTENT_LENGTH'] = 10 * 1024 ** 3
 
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
-def allowed_file(filename):
+def allowed_file(filename: str) -> bool:
+    """Checks if the uploaded file has an allowed extension.
+
+    Args:
+        filename: The name of the file to check.
+
+    Returns:
+        True if the file extension is in the allowed list, False otherwise.
+    """
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 @app.route('/health', methods=['GET'])
-def health_check():
+def health_check() -> Tuple[Response, int]:
+    """Provides a health check of the service, including model status and resource usage.
+
+    Returns:
+        A tuple containing the Flask JSON response with health details
+        and the HTTP status code.
+    """
     pyannote_ok = pyannote_wrapper and pyannote_wrapper.pipeline is not None
     gigaam_ok = gigaam_model is not None
     
@@ -145,7 +168,16 @@ def health_check():
     }), 200
 
 @app.route('/process_audio', methods=['POST'])
-def process_audio_endpoint():
+def process_audio_endpoint() -> Tuple[Response, int]:
+    """Processes an uploaded audio file for diarization and transcription.
+
+    Receives an audio file, performs diarization to identify speakers,
+    and then transcribes the speech for each speaker segment.
+
+    Returns:
+        A tuple containing the Flask JSON response with the transcribed
+        segments or an error, and the HTTP status code.
+    """
     if not pyannote_wrapper or pyannote_wrapper.pipeline is None:
         return jsonify({"error": "Pyannote pipeline not initialized on server."}), 503
     if gigaam_model is None:

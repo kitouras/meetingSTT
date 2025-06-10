@@ -1,1 +1,1 @@
-# This file makes 'diarization_service' a Python package.
+"""Diarization service package."""

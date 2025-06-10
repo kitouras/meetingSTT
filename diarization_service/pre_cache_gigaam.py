@@ -1,3 +1,8 @@
+"""Script to pre-cache the GigaAM ASR model.
+
+This script attempts to download and cache the specified GigaAM model
+to avoid download delays when the main service starts.
+"""
 import sys
 import gigaam
 

@@ -1,11 +1,25 @@
+"""A client wrapper for interacting with a Large Language Model (LLM) service."""
 import os
 import json
+from typing import Optional, Dict, Any
+
 import requests
 
 project_root_ui_client = os.path.dirname(os.path.abspath(__file__))
 
 class LLMClientWrapper:
-    def __init__(self, llm_service_url, api_endpoint, api_key=None, use_auth=False, model_name="gemma-3-4b-it"):
+    """Wraps requests to an LLM service for summarization and health checks."""
+
+    def __init__(self, llm_service_url: str, api_endpoint: str, api_key: Optional[str] = None, use_auth: bool = False, model_name: str = "gemma-3-4b-it") -> None:
+        """Initializes the LLM client wrapper.
+
+        Args:
+            llm_service_url: The base URL of the LLM service.
+            api_endpoint: The specific API endpoint for chat/completions.
+            api_key: The API key for authentication, if required.
+            use_auth: A flag indicating whether to use Bearer token authentication.
+            model_name: The name of the model to use for summarization.
+        """
         self.llm_service_url = llm_service_url
         self.api_endpoint = api_endpoint
         self.api_key = api_key
@@ -13,7 +27,17 @@ class LLMClientWrapper:
         self.model_name = model_name
         self.full_api_url = f"{self.llm_service_url.rstrip('/')}/{self.api_endpoint.lstrip('/')}"
 
-    def summarize(self, text, temperature=0.7, max_tokens=4096):
+    def summarize(self, text: str, temperature: float = 0.7, max_tokens: int = 4096) -> Optional[str]:
+        """Generates a summary of the given text using the LLM.
+
+        Args:
+            text: The text to be summarized.
+            temperature: The temperature for the generation process.
+            max_tokens: The maximum number of tokens for the summary.
+
+        Returns:
+            The summarized text as a string, or None if an error occurs.
+        """
         if not text:
             print("Error: No text provided for summarization.")
             return None
@@ -78,7 +102,12 @@ class LLMClientWrapper:
              print(f"An unexpected error occurred during summarization: {e}")
              return None
 
-    def check_health(self):
+    def check_health(self) -> Dict[str, Any]:
+        """Checks the health of the configured LLM service.
+
+        Returns:
+            A dictionary containing the health status of the service.
+        """
         health_endpoint = f"{self.llm_service_url.rstrip('/')}/health"
         print(f"Checking LLM service health at {health_endpoint}...")
         try:

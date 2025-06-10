@@ -1,19 +1,29 @@
+"""Functions for audio preprocessing, segmentation, and transcription."""
 import os
+from typing import List, Tuple, Optional, Dict, Any
+
 import torch
 import noisereduce as nr
 import soundfile as sf
 import numpy as np
 from pyannote.core import Segment, Annotation
-from .models import PyannotePipelineWrapper
-from typing import List, Tuple
 from gigaam.preprocess import load_audio, SAMPLE_RATE
 from gigaam.vad_utils import audiosegment_to_tensor
+from gigaam.model import GigaAMASR
 from pydub import AudioSegment
 
-def preprocess_audio(input_path, output_path):
-    """
-    Reads an audio file, applies noise reduction, and saves the cleaned audio.
-    Returns True on success, False on failure.
+from .models import PyannotePipelineWrapper
+
+
+def preprocess_audio(input_path: str, output_path: str) -> bool:
+    """Reads an audio file, applies noise reduction, and saves the cleaned audio.
+
+    Args:
+        input_path: Path to the input audio file.
+        output_path: Path to save the processed audio file.
+
+    Returns:
+        True on success, False on failure.
     """
     try:
         print(f"Preprocessing audio: {input_path}")
@@ -43,7 +53,18 @@ def segment_audio_from_diarization(
     sample_rate: int,
     diarization: Annotation,
 ) -> Tuple[List[torch.Tensor], List[Tuple[float, float]]]:
-    """Segments audio tensor based on Pyannote diarization annotation."""
+    """Segments audio tensor based on Pyannote diarization annotation.
+
+    Args:
+        wav_tensor: The audio waveform as a PyTorch tensor.
+        sample_rate: The sample rate of the audio.
+        diarization: The pyannote.core.Annotation object with diarization results.
+
+    Returns:
+        A tuple containing:
+        - A list of audio segments as PyTorch tensors.
+        - A list of (start, end) time boundaries for each segment.
+    """
     audio = AudioSegment(
         wav_tensor.numpy().tobytes(),
         frame_rate=sample_rate,
@@ -82,11 +103,25 @@ def segment_audio_from_diarization(
 
     return segments, boundaries
 
-def diarize_and_transcribe_audio_segments(audio_path: str, pyannote_wrapper: PyannotePipelineWrapper, gigaam_model):
-    """
-    Performs speaker diarization using Pyannote and then transcribes
-    each speaker segment using the GigaAM model.
-    Returns a list of transcribed segments with speaker, start, end, and text.
+def diarize_and_transcribe_audio_segments(
+    audio_path: str,
+    pyannote_wrapper: PyannotePipelineWrapper,
+    gigaam_model: GigaAMASR
+) -> Tuple[Optional[List[Dict[str, Any]]], Optional[str]]:
+    """Performs speaker diarization and then transcribes each speaker segment.
+
+    Uses Pyannote for diarization and GigaAM for transcription.
+
+    Args:
+        audio_path: The path to the input audio file.
+        pyannote_wrapper: An initialized PyannotePipelineWrapper instance.
+        gigaam_model: An initialized GigaAM model instance.
+
+    Returns:
+        A tuple containing:
+        - A list of transcribed segments (dictionaries with speaker, text,
+          start_time, end_time), or None on failure.
+        - An error message string if an error occurred, otherwise None.
     """
     if pyannote_wrapper.pipeline is None:
         print("Error: Pyannote pipeline within wrapper was not loaded successfully.")

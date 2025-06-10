@@ -1,3 +1,8 @@
+"""Script to pre-cache the Pyannote.audio pipeline model.
+
+This script reads the model name from settings.json and attempts to
+download and cache it to avoid download delays when the main service starts.
+"""
 import os
 import json
 import sys
