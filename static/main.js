@@ -116,7 +116,7 @@ form.addEventListener('submit', async (event) => {
             summaryResultDiv.style.display = 'block';
             downloadSummaryLink.style.display = 'inline-block';
             downloadTransriptionLink.style.display = 'inline-block';
-            window.location.href = '/download/summary';
+            window.open('/download/summary', '_blank');
         } else {
             errorMessageDiv.textContent = `Error: ${result.error || response.statusText}`;
             errorMessageDiv.style.display = 'block';
