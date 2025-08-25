@@ -20,6 +20,7 @@ dist/
 
 # Uploads and outputs
 uploads/
+models/
 last_transcription.txt
 last_summary.txt
 

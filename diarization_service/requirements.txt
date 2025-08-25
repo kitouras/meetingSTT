@@ -1,5 +1,10 @@
-pyannote.audio==3.3.2
 flask
+pyannote.audio
 noisereduce
 psutil
 nvidia-ml-py
+soundfile
+faster_whisper
+librosa
+torch @ https://download.pytorch.org/whl/cu129/torch-2.8.0%2Bcu129-cp310-cp310-manylinux_2_28_x86_64.whl
+torchaudio @ https://download.pytorch.org/whl/cu129/torchaudio-2.8.0%2Bcu129-cp310-cp310-manylinux_2_28_x86_64.whl#sha256=bf779145a53e2ea8eddb1ba9802fc4723ea1b927c98951a3430794061cf779d5

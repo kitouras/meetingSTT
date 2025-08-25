@@ -21,7 +21,7 @@ services:
     tty: true
 
   llamacpp:
-    image: ghcr.io/ggerganov/llama.cpp:server-cuda
+    image: ghcr.io/ggml-org/llama.cpp:server-cuda
     volumes:
       - ./models:/models
     ports:
@@ -31,6 +31,7 @@ services:
       LLAMA_ARG_CTX_SIZE: 32768
       LLAMA_ARG_ENDPOINT_METRICS: 1
       LLAMA_ARG_PORT: 1234
+      LLAMA_ARG_N_GPU_LAYERS: 30
     deploy:
       resources:
         reservations:

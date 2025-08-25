@@ -14,6 +14,7 @@ import time
 import atexit
 import json
 import hashlib
+import socket
 from types import FrameType
 from typing import Optional, Dict, Any
 
@@ -132,6 +133,16 @@ def get_project_name() -> str:
     return os.path.basename(os.getcwd()).lower().replace("_", "").replace("-", "") or "meetingstt"
 
 
+def check_internet_connection(host: str = "8.8.8.8", port: int = 53, timeout: int = 3) -> bool:
+    """Check for internet connection by trying to connect to a known host."""
+    try:
+        socket.setdefaulttimeout(timeout)
+        socket.socket(socket.AF_INET, socket.SOCK_STREAM).connect((host, port))
+        return True
+    except socket.error:
+        return False
+
+
 def start_docker_services() -> None:
     """Starts the Docker Compose services.
 
@@ -148,6 +159,18 @@ def start_docker_services() -> None:
         project_name = get_project_name()
         print(f"Using project name for Docker Compose: {project_name}")
         docker = DockerClient(compose_project_name=project_name, compose_files=[compose_file_path])
+
+        llamacpp_image = "ghcr.io/ggml-org/llama.cpp:server-cuda"
+        print(f"\nChecking for updates for Docker image: {llamacpp_image}...")
+        if check_internet_connection():
+            print("Internet connection detected. Attempting to pull the latest image...")
+            try:
+                docker.image.pull(llamacpp_image)
+                print(f"Successfully pulled the latest version of {llamacpp_image}.\n")
+            except DockerException as e:
+                print(f"Could not pull {llamacpp_image}. This may be a temporary issue. Continuing with local image if available. Error: {e}\n")
+        else:
+            print("No internet connection detected. Skipping image update check.\n")
 
         project_name = get_project_name()
         diarization_image_name_base = f"{project_name}-diarization_service"

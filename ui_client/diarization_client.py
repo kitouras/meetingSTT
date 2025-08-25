@@ -26,7 +26,6 @@ class DiarizationServiceClient:
             response.raise_for_status()
             return response.json()
         except requests.exceptions.RequestException as e:
-            #print(f"Error checking diarization service health: {e}")
             return {"status": "unreachable", "error": str(e)}
 
     def process_audio_file(self, audio_file_path: str) -> Optional[Dict[str, Any]]:

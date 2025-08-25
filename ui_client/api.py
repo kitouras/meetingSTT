@@ -128,9 +128,7 @@ def service_status_endpoint() -> Tuple[Response, int]:
         diarization_details = ds_health
         if (
             ds_health and
-            ds_health.get("status") == "healthy" and
-            ds_health.get("pyannote_pipeline") == "OK" and
-            ds_health.get("gigaam_model") == "OK"
+            ds_health.get("status") == "healthy"
         ):
             diarization_ready = True
             diarization_message = "Diarization service is ready."
@@ -139,10 +137,8 @@ def service_status_endpoint() -> Tuple[Response, int]:
             if ds_health and "error" in ds_health:
                 diarization_message = f"Diarization service error: {ds_health.get('details', ds_health['error'])}"
             elif ds_health:
-                pyannote_status = ds_health.get('pyannote_pipeline', 'Unknown')
-                gigaam_status = ds_health.get('gigaam_model', 'Unknown')
                 overall_status = ds_health.get('status', 'Unknown')
-                diarization_message = f"Diarization service status: Overall: {overall_status}, Pyannote: {pyannote_status}, GigaAM: {gigaam_status}."
+                diarization_message = f"Diarization service status: Overall: {overall_status}."
             else:
                 diarization_message = "Diarization service health could not be determined."
     

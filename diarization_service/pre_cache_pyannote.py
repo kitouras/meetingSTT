@@ -1,33 +1,20 @@
-"""Script to pre-cache the Pyannote.audio pipeline model.
-
-This script reads the model name from settings.json and attempts to
-download and cache it to avoid download delays when the main service starts.
-"""
+"""Script to pre-cache the Pyannote.audio pipeline model for Docker builds."""
 import os
 import json
 import sys
 
 try:
-    from diarization_service.models import PyannotePipelineWrapper
+    from pyannote.audio import Pipeline
 except ImportError:
-    current_dir = os.path.dirname(os.path.abspath(__file__))
-    project_root_candidate = os.path.abspath(os.path.join(current_dir, '..'))
-    if os.path.basename(project_root_candidate) == 'app' or 'diarization_service' in os.listdir(project_root_candidate):
-         sys.path.insert(0, project_root_candidate)
-    else:
-         sys.path.insert(0, os.path.dirname(current_dir))
-
-    from diarization_service.models import PyannotePipelineWrapper
+    print("Could not import Pipeline from pyannote.audio. Make sure it's installed.", file=sys.stderr)
+    sys.exit(1)
 
 
 print("Attempting to pre-cache Pyannote models...")
 
 settings_path = "settings.json"
-pyannote_model_name = None
-hugging_face_token = None
-
 if not os.path.exists(settings_path):
-    print(f"Error: Settings file '{settings_path}' not found in current directory ({os.getcwd()}). Cannot pre-cache Pyannote models.")
+    print(f"Error: Settings file '{settings_path}' not found. Cannot pre-cache.", file=sys.stderr)
     sys.exit(1)
 
 try:
@@ -36,31 +23,25 @@ try:
     pyannote_model_name = settings.get("pyannote_model_name")
     hugging_face_token = settings.get("hugging_face_token")
 except Exception as e:
-    print(f"Error reading or parsing '{settings_path}': {e}")
+    print(f"Error reading or parsing settings file: {e}", file=sys.stderr)
     sys.exit(1)
 
 if not pyannote_model_name:
-    print("Error: 'pyannote_model_name' not found in settings.json. Cannot pre-cache.")
+    print("Error: 'pyannote_model_name' not found in settings.json.", file=sys.stderr)
     sys.exit(1)
 
 print(f"Pre-caching Pyannote model: {pyannote_model_name}...")
-if hugging_face_token:
-    print("Using Hugging Face token for pre-caching.")
-else:
-    print("No Hugging Face token provided for pre-caching (will use public models or cached Hugging Face CLI login if any).")
-
 try:
-    wrapper = PyannotePipelineWrapper(model_name=pyannote_model_name, auth_token=hugging_face_token)
-
-    if wrapper.pipeline is not None:
-        print(f"Pyannote model '{pyannote_model_name}' appears to be pre-cached/loaded successfully.")
-    else:
-        print(f"Failed to load/pre-cache Pyannote model '{pyannote_model_name}'. Review logs from PyannotePipelineWrapper for details.")
+    # This call downloads the model files to the cache.
+    # We don't need to keep the pipeline object.
+    _ = Pipeline.from_pretrained(
+        pyannote_model_name,
+        use_auth_token=hugging_face_token
+    )
+    print("Pyannote model pre-caching script completed successfully.")
+    sys.exit(0)
 except Exception as e:
-    print(f"An unexpected error occurred during the Pyannote model pre-caching script: {e}")
+    print(f"An unexpected error occurred during Pyannote model pre-caching: {e}", file=sys.stderr)
     import traceback
     traceback.print_exc()
     sys.exit(1)
-
-print("Pyannote model pre-caching script completed successfully.")
-sys.exit(0)
