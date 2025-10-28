@@ -9,14 +9,15 @@
 - Предоставление пользователю результатов транскрибации и суммаризации.
 - Возможность скачивания транскрипции и суммаризации в формате PDF.
 
-Требования: Python >= 3.10, git, [Docker Desktop](https://www.docker.com/products/docker-desktop/), видеокарта с поддержкой CUDA >= 12.9
+Требования: Python >= 3.10, git, [Docker Desktop](https://www.docker.com/products/docker-desktop/), видеокарта с драйверами [CUDA](https://developer.nvidia.com/cuda-toolkit-archive) >= 12.9
 
 ## Предварительные шаги
 
 1) Склонировать репозиторий через `git clone https://github.com/kitouras/meetingSTT.git` либо скачать архив через Code => Download ZIP и распаковать его.
-2) Задать значение `hugging_face_token` в `settings.json` на свой [Hugging Face токен](https://huggingface.co/settings/tokens) для диаризации [pyannote](https://huggingface.co/pyannote/speaker-diarization-3.1) (нужно подтвердить лицензию)
-2) Подтвердить [лицензию Gemma](https://huggingface.co/google/gemma-3-12b-it-qat-q4_0-gguf), скачать модель [`gemma-3-12b-it-qat-q4_0-gguf`](https://huggingface.co/google/gemma-3-12b-it-qat-q4_0-gguf/blob/main/gemma-3-12b-it-q4_0.gguf) и поместить ее в папку `models`
-3) Привести обрабатываемое аудио в нужный формат wav (если еще не приведено). Например для mp3 через утилиту [ffmpeg](https://ffmpeg.org/) (для других форматов аналогично):
+2) Создать копию `settings.json.example` и переименовать ее в `settings.json`
+3) Задать значение `hugging_face_token` в `settings.json` на свой [Hugging Face токен](https://huggingface.co/settings/tokens) для диаризации [pyannote](https://huggingface.co/pyannote/speaker-diarization-3.1) (нужно подтвердить лицензию)
+4) Подтвердить [лицензию Gemma](https://huggingface.co/google/gemma-3-12b-it-qat-q4_0-gguf), скачать модель [`gemma-3-12b-it-qat-q4_0-gguf`](https://huggingface.co/google/gemma-3-12b-it-qat-q4_0-gguf/blob/main/gemma-3-12b-it-q4_0.gguf) и поместить ее в папку `models`
+5) Привести обрабатываемое аудио в нужный формат wav (если еще не приведено). Например для mp3 через утилиту [ffmpeg](https://ffmpeg.org/) (для других форматов аналогично):
 
 ```
 ffmpeg -i /path/to/audio_name.mp3 -ar 16000 -ac 1 -acodec pcm_s16le meeting_audio.wav

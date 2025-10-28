@@ -32,11 +32,9 @@ if not pyannote_model_name:
 
 print(f"Pre-caching Pyannote model: {pyannote_model_name}...")
 try:
-    # This call downloads the model files to the cache.
-    # We don't need to keep the pipeline object.
     _ = Pipeline.from_pretrained(
         pyannote_model_name,
-        use_auth_token=hugging_face_token
+        token=hugging_face_token
     )
     print("Pyannote model pre-caching script completed successfully.")
     sys.exit(0)

@@ -7,6 +7,7 @@ models/**
 last_summary.txt
 last_transcription.txt
 .diarization_build_state.json
+settings.json
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

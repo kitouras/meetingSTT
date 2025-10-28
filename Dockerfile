@@ -18,11 +18,14 @@ COPY diarization_service/requirements.txt .
 RUN pip3 install --no-cache-dir --upgrade pip && \
     pip3 install --no-cache-dir -r requirements.txt
 
-COPY diarization_service ./diarization_service
 COPY settings.json .
+COPY diarization_service/pre_cache_pyannote.py .
+COPY diarization_service/pre_cache_whisper.py .
 
-RUN python3 ./diarization_service/pre_cache_whisper.py
-RUN python3 ./diarization_service/pre_cache_pyannote.py
+RUN python3 ./pre_cache_pyannote.py
+RUN python3 ./pre_cache_whisper.py
+
+COPY diarization_service ./diarization_service
 
 RUN mkdir -p diarization_uploads
 

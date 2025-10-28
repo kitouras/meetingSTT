@@ -51,7 +51,7 @@ def diarize_audio_process(
         device = "cuda" if torch.cuda.is_available() else "cpu"
 
         pipeline = PyannotePipeline.from_pretrained(
-            pyannote_model_name, use_auth_token=hf_token
+            pyannote_model_name, token=hf_token
         ).to(torch.device(device))
 
         audio_tensor = torch.from_numpy(audio_array).unsqueeze(0)
@@ -61,7 +61,7 @@ def diarize_audio_process(
 
         diarization_result = [
             {"start": turn.start, "end": turn.end, "speaker": speaker}
-            for turn, _, speaker in diarization.itertracks(yield_label=True)
+            for turn, speaker in diarization.speaker_diarization
         ]
         result_queue.put(diarization_result)
     except Exception as e:
