@@ -49,7 +49,7 @@ def preprocess_audio_from_stream(file_stream) -> Tuple[np.ndarray, int]:
         audio, sample_rate = librosa.load(temp_file.name, sr=TARGET_SAMPLE_RATE, mono=True)
         
     print("Applying noise reduction in-memory...")
-    reduced_noise_audio = nr.reduce_noise(y=audio, sr=sample_rate, prop_decrease=0.6)
+    reduced_noise_audio = nr.reduce_noise(y=audio, sr=sample_rate, prop_decrease=0.4)
     
     return reduced_noise_audio, sample_rate
 

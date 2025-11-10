@@ -133,6 +133,20 @@ def get_project_name() -> str:
     return os.path.basename(os.getcwd()).lower().replace("_", "").replace("-", "") or "meetingstt"
 
 
+def load_settings() -> Dict[str, Any]:
+    """Loads settings from settings.json."""
+    settings_path = "settings.json"
+    if os.path.exists(settings_path):
+        try:
+            with open(settings_path, 'r', encoding='utf-8') as f:
+                return json.load(f)
+        except (json.JSONDecodeError, IOError) as e:
+            print(f"Warning: Could not read or parse {settings_path}: {e}. Using default settings.")
+            return {}
+    print("Info: settings.json not found. Using default settings.")
+    return {}
+
+
 def check_internet_connection(host: str = "8.8.8.8", port: int = 53, timeout: int = 3) -> bool:
     """Check for internet connection by trying to connect to a known host."""
     try:
@@ -151,6 +165,9 @@ def start_docker_services() -> None:
     global docker
     print("Initializing Docker client...")
     try:
+        settings = load_settings()
+        check_for_llamacpp_updates = settings.get("check_for_llamacpp_image_updates", False)
+
         compose_file_path = os.path.join(os.getcwd(), "docker-compose.yml")
         if not os.path.exists(compose_file_path):
             print(f"Error: docker-compose.yml not found at {compose_file_path}")
@@ -161,16 +178,19 @@ def start_docker_services() -> None:
         docker = DockerClient(compose_project_name=project_name, compose_files=[compose_file_path])
 
         llamacpp_image = "ghcr.io/ggml-org/llama.cpp:server-cuda"
-        print(f"\nChecking for updates for Docker image: {llamacpp_image}...")
-        if check_internet_connection():
-            print("Internet connection detected. Attempting to pull the latest image...")
-            try:
-                docker.image.pull(llamacpp_image)
-                print(f"Successfully pulled the latest version of {llamacpp_image}.\n")
-            except DockerException as e:
-                print(f"Could not pull {llamacpp_image}. This may be a temporary issue. Continuing with local image if available. Error: {e}\n")
+        if check_for_llamacpp_updates:
+            print(f"\nChecking for updates for Docker image: {llamacpp_image}...")
+            if check_internet_connection():
+                print("Internet connection detected. Attempting to pull the latest image...")
+                try:
+                    docker.image.pull(llamacpp_image)
+                    print(f"Successfully pulled the latest version of {llamacpp_image}.\n")
+                except DockerException as e:
+                    print(f"Could not pull {llamacpp_image}. This may be a temporary issue. Continuing with local image if available. Error: {e}\n")
+            else:
+                print("No internet connection detected. Skipping image update check.\n")
         else:
-            print("No internet connection detected. Skipping image update check.\n")
+            print(f"\nSkipping update check for Docker image {llamacpp_image} as per settings.")
 
         project_name = get_project_name()
         diarization_image_name_base = f"{project_name}-diarization_service"
