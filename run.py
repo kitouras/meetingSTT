@@ -381,7 +381,8 @@ if __name__ == "__main__":
 
     signal.signal(signal.SIGINT, handle_exit)
     signal.signal(signal.SIGTERM, handle_exit)
-    signal.signal(signal.SIGBREAK, handle_exit)
+    if hasattr(signal, 'SIGBREAK'):
+        signal.signal(signal.SIGBREAK, handle_exit)
 
     print("--- Starting Application ---")
     start_ui_client()
